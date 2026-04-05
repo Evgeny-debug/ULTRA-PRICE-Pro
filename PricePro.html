@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ULTRA System v7.0 | Mega Database Titan</title>
+    <style>
+        :root {
+            --apple-blue: #007aff;
+            --apple-green: #34c759;
+            --apple-red: #ff3b30;
+            --bg: #000000;
+            --card-bg: #1c1c1e;
+            --text-main: #ffffff;
+            --text-sec: #8e8e93;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.15);
+        }
+
+        [data-theme="light"] {
+            --bg: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-main: #000000;
+            --text-sec: #8e8e93;
+            --glass: rgba(0, 0, 0, 0.05);
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.5s ease;
+            overflow: hidden;
+            width: 100vw; height: 100vh;
+            position: fixed;
+        }
+
+        /* --- Header --- */
+        .header-floating {
+            position: fixed;
+            top: 15px; left: 16px; right: 16px;
+            height: 60px;
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            z-index: 10000;
+            border-radius: 22px;
+            border: 0.5px solid var(--glass-border);
+            display: flex; align-items: center; padding: 0 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        .search-row { display: flex; gap: 8px; width: 100%; align-items: center; }
+        #searchInput { flex: 1; padding: 10px 14px; border-radius: 14px; border: none; background: rgba(255,255,255,0.06); color: var(--text-main); font-size: 16px; outline: none; min-width: 0; }
+        
+        #confirmBtn { 
+            background: var(--apple-blue); 
+            color: white; border: none; border-radius: 12px; 
+            padding: 10px 16px; font-weight: 700; font-size: 13px; 
+            flex-shrink: 0; transition: transform 0.1s;
+            cursor: pointer;
+        }
+        #confirmBtn:active { transform: scale(0.95); opacity: 0.8; }
+
+        .theme-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 4px; display: flex; }
+
+        /* --- Viewport --- */
+        #viewport {
+            width: 100%; height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 95px 16px 240px; 
+        }
+
+        #rubber-wrapper {
+            will-change: transform;
+            display: flex; flex-direction: column; gap: 14px;
+            max-width: 500px; margin: 0 auto;
+        }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-sec); font-size: 15px; }
+
+        /* --- Cards --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: 26px;
+            padding: 22px;
+            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .card.is-selected { border-color: var(--apple-blue); background: linear-gradient(180deg, var(--card-bg) 0%, rgba(0,122,255,0.03) 100%); transform: scale(0.98); }
+        .card.status-trauma { animation: shake 0.4s ease; border-color: var(--apple-red) !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .model-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+        .model-name { font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+        .service-type { color: var(--text-sec); font-size: 14px; font-weight: 400; margin-top: 2px; }
+        
+        .client-box { text-align: right; }
+        .client-label { font-size: 10px; font-weight: 700; color: var(--apple-blue); text-transform: uppercase; margin-bottom: 2px; }
+        .client-price { font-size: 18px; font-weight: 800; transition: color 0.3s; }
+
+        .limits-row { font-size: 11px; color: var(--text-sec); margin-top: 6px; font-weight: 500; }
+
+        .price-footer {
+            margin-top: 18px; padding-top: 14px;
+            border-top: 0.5px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+
+        .formula { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: var(--text-sec); opacity: 0.6; }
+        .profit-display { font-size: 30px; font-weight: 900; letter-spacing: -1px; position: relative; transition: color 0.3s; }
+
+        .status-azart .profit-display { color: var(--apple-green); text-shadow: 0 0 15px rgba(52,199,89,0.2); }
+        .status-trauma .profit-display, .status-trauma .client-price { color: var(--apple-red); }
+
+        .fly-val { position: absolute; top: -25px; right: 0; font-size: 16px; font-weight: 800; pointer-events: none; animation: flyUp 0.8s forwards; }
+        @keyframes flyUp { 0% { opacity: 0; transform: translateY(10px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-45px); } }
+
+        /* --- Footer --- */
+        .footer-glass {
+            position: fixed; bottom: 30px; left: 16px; right: 16px;
+            background: var(--glass); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+            border-radius: 26px; padding: 14px; border: 1px solid var(--glass-border);
+            z-index: 10000; max-width: 500px; margin: 0 auto;
+        }
+        .controls-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .controls-grid input { 
+            width: 100%; background: rgba(255,255,255,0.08); border: none; 
+            padding: 14px 4px; border-radius: 16px; text-align: center; 
+            font-size: 14px; font-weight: 700; color: var(--text-main); outline: none; transition: 0.3s;
+        }
+        .controls-grid input.valid-code { background: rgba(52, 199, 89, 0.15); border: 1px solid var(--apple-green); color: var(--apple-green); }
+    </style>
+</head>
+<body data-theme="dark">
+
+<header class="header-floating">
+    <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Напр: 13 рм экранчик..." autocomplete="off">
+        <button class="theme-btn" id="themeToggle">
+            <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button id="confirmBtn">Найти</button>
+    </div>
+</header>
+
+<div id="viewport">
+    <div id="rubber-wrapper">
+        <div id="content-root" style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="empty-state">Введите бренд, модель и деталь<br>База адаптирована к рынку 2026 года</div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer-glass">
+    <div class="controls-grid">
+        <input type="number" id="markupInput" placeholder="+ Нац" inputmode="numeric">
+        <input type="number" id="discountInput" placeholder="- Скид" inputmode="numeric">
+        <input type="text" id="promoInput" placeholder="Ваш промокод" spellcheck="false">
+    </div>
+</footer>
+
+<script>
+    // ==========================================
+    // 1. DYNAMIC USD ENGINE
+    // ==========================================
+    const USD_CURRENT = 41.5; // ТЕКУЩИЙ КУРС (Меняй его при скачках доллара)
+    const USD_BASE = 38.0;    // БАЗОВЫЙ КУРС
+    const USD = USD_CURRENT / USD_BASE; 
+    
+    const DELIVERY_COST = Math.round((300 * USD) / 10) * 10; 
+
+    // ==========================================
+    // 2. ULTRA MEGA DATABASE (От бюджета до флагманов)
+    // ==========================================
+    const modelsData = [
+        // APPLE
+        { brand: 'Apple', model: 'iPhone 17 Pro Max', m: 2.8 }, { brand: 'Apple', model: 'iPhone 17 Pro', m: 2.6 }, { brand: 'Apple', model: 'iPhone 17 Plus', m: 2.4 }, { brand: 'Apple', model: 'iPhone 17', m: 2.2 },
+        { brand: 'Apple', model: 'iPhone 16 Pro Max', m: 2.4 }, { brand: 'Apple', model: 'iPhone 16 Pro', m: 2.2 }, { brand: 'Apple', model: 'iPhone 16 Plus', m: 2.0 }, { brand: 'Apple', model: 'iPhone 16', m: 1.8 },
+        { brand: 'Apple', model: 'iPhone 15 Pro Max', m: 2.0 }, { brand: 'Apple', model: 'iPhone 15 Pro', m: 1.8 }, { brand: 'Apple', model: 'iPhone 15 Plus', m: 1.6 }, { brand: 'Apple', model: 'iPhone 15', m: 1.5 },
+        { brand: 'Apple', model: 'iPhone 14 Pro Max', m: 1.7 }, { brand: 'Apple', model: 'iPhone 14 Pro', m: 1.6 }, { brand: 'Apple', model: 'iPhone 14 Plus', m: 1.4 }, { brand: 'Apple', model: 'iPhone 14', m: 1.3 },
+        { brand: 'Apple', model: 'iPhone 13 Pro Max', m: 1.5 }, { brand: 'Apple', model: 'iPhone 13 Pro', m: 1.4 }, { brand: 'Apple', model: 'iPhone 13', m: 1.2 }, { brand: 'Apple', model: 'iPhone 13 mini', m: 1.1 },
+        { brand: 'Apple', model: 'iPhone 12 Pro Max', m: 1.3 }, { brand: 'Apple', model: 'iPhone 12 Pro', m: 1.2 }, { brand: 'Apple', model: 'iPhone 12', m: 1.1 }, { brand: 'Apple', model: 'iPhone 12 mini', m: 1.0 },
+        { brand: 'Apple', model: 'iPhone 11 Pro Max', m: 1.1 }, { brand: 'Apple', model: 'iPhone 11 Pro', m: 1.0 }, { brand: 'Apple', model: 'iPhone 11', m: 0.9 },
+        { brand: 'Apple', model: 'iPhone XS Max', m: 0.85 }, { brand: 'Apple', model: 'iPhone XS', m: 0.8 }, { brand: 'Apple', model: 'iPhone XR', m: 0.75 }, { brand: 'Apple', model: 'iPhone X', m: 0.75 },
+        { brand: 'Apple', model: 'iPhone 8 Plus', m: 0.6 }, { brand: 'Apple', model: 'iPhone 8', m: 0.5 }, { brand: 'Apple', model: 'iPhone 7 Plus', m: 0.45 }, { brand: 'Apple', model: 'iPhone 7', m: 0.4 },
+        { brand: 'Apple', model: 'iPhone SE (2022)', m: 0.8 }, { brand: 'Apple', model: 'iPhone SE (2020)', m: 0.6 }, { brand: 'Apple', model: 'iPhone SE (2016)', m: 0.35 },
+
+        // SAMSUNG 
+        { brand: 'Samsung', model: 'Galaxy Z Fold 6', m: 3.2 }, { brand: 'Samsung', model: 'Galaxy Z Fold 5', m: 2.8 }, { brand: 'Samsung', model: 'Galaxy Z Fold 4', m: 2.4 }, { brand: 'Samsung', model: 'Galaxy Z Fold 3', m: 2.0 },
+        { brand: 'Samsung', model: 'Galaxy Z Flip 6', m: 2.6 }, { brand: 'Samsung', model: 'Galaxy Z Flip 5', m: 2.3 }, { brand: 'Samsung', model: 'Galaxy Z Flip 4', m: 2.0 }, { brand: 'Samsung', model: 'Galaxy Z Flip 3', m: 1.7 },
+        { brand: 'Samsung', model: 'Galaxy S26 Ultra', m: 2.6 }, { brand: 'Samsung', model: 'Galaxy S26+', m: 2.4 }, { brand: 'Samsung', model: 'Galaxy S26', m: 2.2 },
+        { brand: 'Samsung', model: 'Galaxy S25 Ultra', m: 2.4 }, { brand: 'Samsung', model: 'Galaxy S25+', m: 2.2 }, { brand: 'Samsung', model: 'Galaxy S25', m: 2.0 }, { brand: 'Samsung', model: 'Galaxy S25 FE', m: 1.8 },
+        { brand: 'Samsung', model: 'Galaxy S24 Ultra', m: 2.2 }, { brand: 'Samsung', model: 'Galaxy S24+', m: 2.0 }, { brand: 'Samsung', model: 'Galaxy S24', m: 1.8 }, { brand: 'Samsung', model: 'Galaxy S24 FE', m: 1.6 },
+        { brand: 'Samsung', model: 'Galaxy S23 Ultra', m: 1.9 }, { brand: 'Samsung', model: 'Galaxy S23+', m: 1.7 }, { brand: 'Samsung', model: 'Galaxy S23', m: 1.5 }, { brand: 'Samsung', model: 'Galaxy S23 FE', m: 1.3 },
+        { brand: 'Samsung', model: 'Galaxy S22 Ultra', m: 1.6 }, { brand: 'Samsung', model: 'Galaxy S22+', m: 1.4 }, { brand: 'Samsung', model: 'Galaxy S22', m: 1.3 },
+        { brand: 'Samsung', model: 'Galaxy S21 Ultra', m: 1.4 }, { brand: 'Samsung', model: 'Galaxy S21+', m: 1.2 }, { brand: 'Samsung', model: 'Galaxy S21', m: 1.1 }, { brand: 'Samsung', model: 'Galaxy S21 FE', m: 1.0 },
+        { brand: 'Samsung', model: 'Galaxy S20 Ultra', m: 1.2 }, { brand: 'Samsung', model: 'Galaxy S20+', m: 1.0 }, { brand: 'Samsung', model: 'Galaxy S20', m: 0.9 }, { brand: 'Samsung', model: 'Galaxy S20 FE', m: 0.8 },
+        { brand: 'Samsung', model: 'Galaxy Note 20 Ultra', m: 1.4 }, { brand: 'Samsung', model: 'Galaxy Note 20', m: 1.2 }, { brand: 'Samsung', model: 'Galaxy Note 10+', m: 1.0 },
+        { brand: 'Samsung', model: 'Galaxy A55', m: 1.1 }, { brand: 'Samsung', model: 'Galaxy A54', m: 1.0 }, { brand: 'Samsung', model: 'Galaxy A53', m: 0.9 }, { brand: 'Samsung', model: 'Galaxy A52', m: 0.8 },
+        { brand: 'Samsung', model: 'Galaxy A35', m: 0.9 }, { brand: 'Samsung', model: 'Galaxy A34', m: 0.8 }, { brand: 'Samsung', model: 'Galaxy A33', m: 0.7 }, { brand: 'Samsung', model: 'Galaxy A32', m: 0.6 },
+        { brand: 'Samsung', model: 'Galaxy A25', m: 0.7 }, { brand: 'Samsung', model: 'Galaxy A24', m: 0.6 }, { brand: 'Samsung', model: 'Galaxy A23', m: 0.5 },
+        { brand: 'Samsung', model: 'Galaxy A15', m: 0.5 }, { brand: 'Samsung', model: 'Galaxy A14', m: 0.4 }, { brand: 'Samsung', model: 'Galaxy A13', m: 0.4 },
+        { brand: 'Samsung', model: 'Galaxy A05', m: 0.35 }, { brand: 'Samsung', model: 'Galaxy A04', m: 0.3 },
+
+        // XIAOMI
+        { brand: 'Xiaomi', model: '15 Ultra', m: 2.3 }, { brand: 'Xiaomi', model: '15 Pro', m: 2.1 }, { brand: 'Xiaomi', model: '15', m: 1.9 },
+        { brand: 'Xiaomi', model: '14 Ultra', m: 2.1 }, { brand: 'Xiaomi', model: '14 Pro', m: 1.9 }, { brand: 'Xiaomi', model: '14', m: 1.7 }, { brand: 'Xiaomi', model: '14T Pro', m: 1.5 }, { brand: 'Xiaomi', model: '14T', m: 1.3 },
+        { brand: 'Xiaomi', model: '13 Ultra', m: 1.8 }, { brand: 'Xiaomi', model: '13 Pro', m: 1.6 }, { brand: 'Xiaomi', model: '13', m: 1.4 }, { brand: 'Xiaomi', model: '13T Pro', m: 1.3 }, { brand: 'Xiaomi', model: '13T', m: 1.1 }, { brand: 'Xiaomi', model: '13 Lite', m: 0.9 },
+        { brand: 'Xiaomi', model: '12S Ultra', m: 1.5 }, { brand: 'Xiaomi', model: '12 Pro', m: 1.3 }, { brand: 'Xiaomi', model: '12', m: 1.1 }, { brand: 'Xiaomi', model: '12T Pro', m: 1.0 }, { brand: 'Xiaomi', model: '12T', m: 0.9 }, { brand: 'Xiaomi', model: '12 Lite', m: 0.8 },
+        { brand: 'Xiaomi', model: '11T Pro', m: 0.9 }, { brand: 'Xiaomi', model: '11T', m: 0.8 }, { brand: 'Xiaomi', model: '11 Lite 5G NE', m: 0.7 },
+
+        // REDMI
+        { brand: 'Xiaomi', model: 'Redmi Note 14 Pro+', m: 1.3 }, { brand: 'Xiaomi', model: 'Redmi Note 14 Pro', m: 1.1 }, { brand: 'Xiaomi', model: 'Redmi Note 14', m: 0.9 },
+        { brand: 'Xiaomi', model: 'Redmi Note 13 Pro+', m: 1.1 }, { brand: 'Xiaomi', model: 'Redmi Note 13 Pro', m: 0.9 }, { brand: 'Xiaomi', model: 'Redmi Note 13', m: 0.7 },
+        { brand: 'Xiaomi', model: 'Redmi Note 12 Pro+', m: 0.9 }, { brand: 'Xiaomi', model: 'Redmi Note 12 Pro', m: 0.8 }, { brand: 'Xiaomi', model: 'Redmi Note 12', m: 0.6 },
+        { brand: 'Xiaomi', model: 'Redmi Note 11 Pro', m: 0.7 }, { brand: 'Xiaomi', model: 'Redmi Note 11', m: 0.5 },
+        { brand: 'Xiaomi', model: 'Redmi Note 10 Pro', m: 0.6 }, { brand: 'Xiaomi', model: 'Redmi Note 10', m: 0.4 },
+        { brand: 'Xiaomi', model: 'Redmi 13', m: 0.6 }, { brand: 'Xiaomi', model: 'Redmi 13C', m: 0.5 },
+        { brand: 'Xiaomi', model: 'Redmi 12', m: 0.5 }, { brand: 'Xiaomi', model: 'Redmi 12C', m: 0.4 },
+        { brand: 'Xiaomi', model: 'Redmi 10', m: 0.4 }, { brand: 'Xiaomi', model: 'Redmi 9', m: 0.3 },
+
+        // POCO
+        { brand: 'Poco', model: 'F6 Pro', m: 1.4 }, { brand: 'Poco', model: 'F6', m: 1.2 },
+        { brand: 'Poco', model: 'F5 Pro', m: 1.2 }, { brand: 'Poco', model: 'F5', m: 1.0 },
+        { brand: 'Poco', model: 'F4 GT', m: 1.0 }, { brand: 'Poco', model: 'F4', m: 0.9 },
+        { brand: 'Poco', model: 'X6 Pro', m: 1.1 }, { brand: 'Poco', model: 'X6', m: 0.9 },
+        { brand: 'Poco', model: 'X5 Pro', m: 0.9 }, { brand: 'Poco', model: 'X5', m: 0.7 },
+        { brand: 'Poco', model: 'X4 Pro', m: 0.8 }, { brand: 'Poco', model: 'X3 Pro', m: 0.6 },
+        { brand: 'Poco', model: 'M6 Pro', m: 0.8 }, { brand: 'Poco', model: 'M6', m: 0.6 },
+        { brand: 'Poco', model: 'M5s', m: 0.6 }, { brand: 'Poco', model: 'M5', m: 0.5 },
+
+        // GOOGLE PIXEL
+        { brand: 'Google', model: 'Pixel 9 Pro Fold', m: 2.7 }, { brand: 'Google', model: 'Pixel 9 Pro XL', m: 2.0 }, { brand: 'Google', model: 'Pixel 9 Pro', m: 1.9 }, { brand: 'Google', model: 'Pixel 9', m: 1.7 },
+        { brand: 'Google', model: 'Pixel 8 Pro', m: 1.7 }, { brand: 'Google', model: 'Pixel 8', m: 1.5 }, { brand: 'Google', model: 'Pixel 8a', m: 1.3 },
+        { brand: 'Google', model: 'Pixel 7 Pro', m: 1.4 }, { brand: 'Google', model: 'Pixel 7', m: 1.2 }, { brand: 'Google', model: 'Pixel 7a', m: 1.0 },
+        { brand: 'Google', model: 'Pixel 6 Pro', m: 1.2 }, { brand: 'Google', model: 'Pixel 6', m: 1.0 }, { brand: 'Google', model: 'Pixel 6a', m: 0.8 },
+        { brand: 'Google', model: 'Pixel 5', m: 0.8 }, { brand: 'Google', model: 'Pixel 4a', m: 0.6 },
+
+        // ONEPLUS
+        { brand: 'OnePlus', model: '12', m: 1.9 }, { brand: 'OnePlus', model: '12R', m: 1.6 },
+        { brand: 'OnePlus', model: '11', m: 1.6 }, { brand: 'OnePlus', model: '11R', m: 1.4 },
+        { brand: 'OnePlus', model: '10 Pro', m: 1.4 }, { brand: 'OnePlus', model: '10T', m: 1.2 },
+        { brand: 'OnePlus', model: '9 Pro', m: 1.2 }, { brand: 'OnePlus', model: '9', m: 1.0 },
+        { brand: 'OnePlus', model: 'Nord 4', m: 1.2 }, { brand: 'OnePlus', model: 'Nord 3', m: 1.0 },
+
+        // HONOR & HUAWEI
+        { brand: 'Honor', model: 'Magic 6 Pro', m: 2.0 }, { brand: 'Honor', model: 'Magic 5 Pro', m: 1.7 },
+        { brand: 'Honor', model: '90', m: 1.2 }, { brand: 'Honor', model: '70', m: 1.0 },
+        { brand: 'Huawei', model: 'Pura 70 Ultra', m: 2.2 }, { brand: 'Huawei', model: 'Pura 70 Pro', m: 2.0 },
+        { brand: 'Huawei', model: 'P60 Pro', m: 1.8 }, { brand: 'Huawei', model: 'Mate 60 Pro', m: 1.9 },
+
+        // MOTOROLA
+        { brand: 'Motorola', model: 'Edge 50 Ultra', m: 1.8 }, { brand: 'Motorola', model: 'Edge 50 Pro', m: 1.6 },
+        { brand: 'Motorola', model: 'Edge 40 Pro', m: 1.4 }, { brand: 'Motorola', model: 'Moto G84', m: 0.8 }
+    ];
+
+    const basePrices = {
+        'Дисплей': { 'Оригинал': [9000, 6000], 'Копия': [4500, 2500] },
+        'Аккумулятор': { 'Оригинал': [2500, 1500], 'Копия': [1500, 600] },
+        'Задняя крышка': { 'Оригинал': [3500, 2000], 'Копия': [1800, 700] },
+        'Стекло камеры': { 'Оригинал': [1200, 400], 'Копия': [700, 150] },
+        'Основная камера': { 'Оригинал': [4000, 2800], 'Копия': [2200, 1200] },
+        'Фронтальная камера': { 'Оригинал': [3000, 2000], 'Копия': [1800, 900] },
+        'Разъем зарядки': { 'Оригинал': [2000, 1000], 'Копия': [1200, 400] },
+        'Динамик полифонический': { 'Оригинал': [1800, 900], 'Копия': [1000, 300] },
+        'Слуховой динамик': { 'Оригинал': [1500, 800], 'Копия': [900, 250] },
+        'Кнопки (громкость/вкл)': { 'Оригинал': [1600, 700], 'Копия': [1000, 300] },
+        'Пайка платы (Контроллер)': { 'Оригинал': [4500, 1000], 'Копия': [3000, 1000] } 
+    };
+
+    // ==========================================
+    // 3. УЛЬТРА СЛОВАРЬ (Синонимы и опечатки)
+    // ==========================================
+    const dictionary = {
+        'айфон': 'iphone', 'яблоко': 'iphone', 'огрызок': 'iphone',
+        'самсунг': 'samsung', 'гэлакси': 'galaxy', 'галакси': 'galaxy',
+        'сяоми': 'xiaomi', 'ксяоми': 'xiaomi', 'шаоми': 'xiaomi', 'ми': 'xiaomi',
+        'редми': 'redmi', 'редмик': 'redmi', 'поко': 'poco', 'покофон': 'poco',
+        'пиксель': 'pixel', 'гугл': 'google', 'ванплас': 'oneplus', 'уанплас': 'oneplus',
+        'хуавей': 'huawei', 'хонор': 'honor', 'моторола': 'motorola', 'мото': 'motorola',
+        'р': 'pro', 'p': 'pro', 'про': 'pro', 'прошка': 'pro',
+        'рм': 'pro max', 'pm': 'pro max', 'промакс': 'pro max', 'мак': 'max', 'макс': 'max', 
+        'ультра': 'ultra', 'мини': 'mini', 'фолд': 'fold', 'флип': 'flip', 'эдж': 'edge', 'лайт': 'lite', 'плюс': 'plus', 'plus': 'plus', 'фе': 'fe', 'фэ': 'fe', 'не': 'ne',
+        'дисплэй': 'дисплей', 'дисплея': 'дисплей', 'экран': 'дисплей', 'экрана': 'дисплей', 'модуль': 'дисплей', 'матрица': 'дисплей', 'экранчик': 'дисплей', 'морда': 'дисплей', 'тач': 'дисплей', 'сенсор': 'дисплей',
+        'акб': 'аккумулятор', 'батарея': 'аккумулятор', 'батарею': 'аккумулятор', 'акум': 'аккумулятор', 'аккум': 'аккумулятор', 'батарейка': 'аккумулятор', 'банка': 'аккумулятор',
+        'крышка': 'крышка', 'крышки': 'крышка', 'задняя': 'крышка', 'корпус': 'крышка', 'панель': 'крышка', 'жопа': 'крышка', 'спинка': 'крышка',
+        'стекло': 'стекло', 'стекла': 'стекло', 'стеклышко': 'стекло', 'камера': 'камера', 'основная': 'основная', 'фронталка': 'фронтальная', 'глазок': 'стекло',
+        'гнездо': 'разъем', 'разьем': 'разъем', 'зарядка': 'зарядки', 'зарядное': 'зарядки', 'шлейф': 'разъем', 'тайпси': 'разъем', 'type-c': 'разъем', 'lightning': 'разъем',
+        'динамик': 'динамик', 'звук': 'динамик', 'слуховой': 'слуховой', 'верхний': 'слуховой', 'полифонический': 'полифонический', 'нижний': 'полифонический', 'динамики': 'динамик', 'микрофон': 'динамик',
+        'кнопка': 'кнопки', 'кнопок': 'кнопки', 'включения': 'вкл', 'громкости': 'громкость', 'плата': 'платы', 'пайка': 'пайка', 'контроллер': 'контроллер',
+        'ориг': 'оригинал', 'оригинальный': 'оригинал', 'коп': 'копия', 'китай': 'копия', 'аналог': 'копия', 'подделка': 'копия'
+    };
+
+    const ignoreWords = ['замена', 'ремонт', 'починить', 'разбил', 'сломал', 'глючит', 'не', 'работает', 'на', 'в', 'для', 'у', 'под', 'сколько', 'стоит', 'цена', 'стоимость', 'прайс', 'гривен', 'грн'];
+
+    const database = [];
+    modelsData.forEach(phone => {
+        for (const [repairType, qualities] of Object.entries(basePrices)) {
+            for (const [quality, prices] of Object.entries(qualities)) {
+                // Применяем Множитель Модели (m) и Курс Доллара (USD), округляем до 50
+                const cp = Math.round((prices[0] * phone.m * USD) / 50) * 50;
+                const pc = Math.round((prices[1] * phone.m * USD) / 50) * 50;
+                
+                const totalProfit = cp - pc - DELIVERY_COST;
+                const safeProfit = totalProfit > 0 ? totalProfit : 0;
+                
+                const maxDiscount = Math.floor((safeProfit * 0.4) / 50) * 50; 
+                const maxMarkup = Math.floor((cp * 0.15) / 50) * 50;
+
+                const searchString = `${phone.brand} ${phone.model} ${repairType} ${quality}`.toLowerCase().replace(/[^a-zа-яё0-9\s]/g, '');
+
+                database.push({
+                    id: `${phone.model}-${repairType}-${quality}`.replace(/\s+/g, '-'),
+                    brand: phone.brand, model: phone.model, repair: repairType, quality: quality,
+                    baseCP: cp, basePC: pc, baseProfit: safeProfit, 
+                    maxM: maxMarkup, maxD: maxDiscount, searchStr: searchString
+                });
+            }
+        }
+    });
+
+    const history = new Map();
+    let activeId = null;
+    let isStrict = false;
+
+    // ==========================================
+    // 4. ЛОГИКА ФИЛЬТРАЦИИ И ПОИСКА
+    // ==========================================
+    function parseQuery(rawQuery) {
+        let query = rawQuery.toLowerCase().replace(/[^a-zа-яё0-9\s]/g, '');
+        let words = query.split(/\s+/).filter(w => w.length > 0);
+        let searchTerms = [];
+
+        words.forEach(word => {
+            if (ignoreWords.includes(word)) return;
+            let term = dictionary[word] || word;
+            if (!searchTerms.includes(term)) searchTerms.push(term);
+        });
+
+        // Слияние сложных терминов (Умный парсер)
+        const joinTerms = (arr, t1, t2, res) => {
+            if (arr.includes(t1) && arr.includes(t2)) {
+                arr = arr.filter(t => t !== t1 && t !== t2); arr.push(res);
+            } return arr;
+        };
+
+        searchTerms = joinTerms(searchTerms, 'стекло', 'камера', 'стекло камеры');
+        searchTerms = joinTerms(searchTerms, 'основная', 'камера', 'основная камера');
+        searchTerms = joinTerms(searchTerms, 'фронтальная', 'камера', 'фронтальная камера');
+        searchTerms = joinTerms(searchTerms, 'задняя', 'крышка', 'задняя крышка');
+        searchTerms = joinTerms(searchTerms, 'разъем', 'зарядки', 'разъем зарядки');
+        searchTerms = joinTerms(searchTerms, 'слуховой', 'динамик', 'слуховой динамик');
+        searchTerms = joinTerms(searchTerms, 'динамик', 'полифонический', 'динамик полифонический');
+
+        return searchTerms;
+    }
+
+    function calculate(item, isSelected) {
+        const m = isSelected ? (parseFloat(document.getElementById('markupInput').value) || 0) : 0;
+        const d = isSelected ? (parseFloat(document.getElementById('discountInput').value) || 0) : 0;
+        
+        // FIXOMAT Logic
+        const pInput = document.getElementById('promoInput');
+        const isFix = pInput.value.toUpperCase() === 'FIXOMAT';
+        if (isSelected && isFix) pInput.classList.add('valid-code'); 
+        else if (isSelected) pInput.classList.remove('valid-code');
+
+        const client = item.baseCP + m - d;
+        const profit = client - item.basePC - DELIVERY_COST;
+        
+        // Доля (51% если FIXOMAT, иначе 50%)
+        const share = Math.round(profit * (isFix ? 0.51 : 0.5));
+        const baseShare = Math.round(item.baseProfit * 0.5);
+
+        let status = 'normal';
+        if (isSelected) {
+            if (share > baseShare) status = 'azart';
+            else if (share < baseShare) status = 'trauma';
+        }
+        return { share, client, status, math: `${client}-${item.basePC}-${DELIVERY_COST}` };
+    }
+
+    function refresh() {
+        const q = document.getElementById('searchInput').value;
+        const root = document.getElementById('content-root');
+        if (q.length < 2) { 
+            root.innerHTML = '<div class="empty-state">Введите бренд, модель и деталь<br>База адаптирована к рынку 2026 года</div>'; 
+            activeId = null; return; 
+        }
+        
+        const terms = parseQuery(q);
+        
+        let filtered = database.filter(item => {
+            const matchAll = terms.every(t => item.searchStr.includes(t));
+            
+            // STRICT MATCH (Кнопка Найти)
+            if (isStrict) {
+                const isPro = terms.some(t => t === 'pro');
+                const isMax = terms.some(t => t === 'max');
+                const isPlus = terms.some(t => t === 'plus');
+                const isMini = terms.some(t => t === 'mini');
+                const mdl = item.model.toLowerCase();
+                
+                if (isMax && !mdl.includes('max')) return false;
+                if (isPlus && !mdl.includes('plus')) return false;
+                if (isMini && !mdl.includes('mini')) return false;
+                if (isPro && !isMax && mdl.includes('max')) return false;
+                if (isPro && !mdl.includes('pro')) return false;
+                if (!isPro && !isMax && !isPlus && !isMini && (mdl.includes('pro') || mdl.includes('max') || mdl.includes('plus') || mdl.includes('mini'))) return false;
+            }
+            return matchAll;
+        });
+
+        if (filtered.length === 0) {
+            root.innerHTML = '<div class="empty-state">Ничего не найдено.<br>Попробуйте другие слова.</div>';
+            return;
+        }
+
+        root.innerHTML = filtered.map(i => {
+            const res = calculate(i, i.id === activeId);
+            const old = history.get(i.id) || res.share;
+            const diff = res.share - old;
+            history.set(i.id, res.share);
+            
+            const mood = res.status === 'trauma' ? 'status-trauma' : (res.status === 'azart' ? 'status-azart' : '');
+            
+            return `
+                <div class="card ${i.id === activeId ? 'is-selected' : ''} ${mood}" onclick="sel('${i.id}')">
+                    <div class="model-header">
+                        <div>
+                            <div class="model-name">${i.model}</div>
+                            <div class="service-type">${i.repair} (${i.quality})</div>
+                        </div>
+                        <div class="client-box">
+                            <div class="client-label">Клиенту</div>
+                            <div class="client-price">${res.client} ₴</div>
+                        </div>
+                    </div>
+                    <div class="limits-row">Лимиты: <span style="color:var(--apple-green)">+${i.maxM}</span> / <span style="color:var(--apple-red)">-${i.maxD}</span></div>
+                    <div class="price-footer">
+                        <div class="formula">${res.math}</div>
+                        <div class="profit-display">
+                            ${diff !== 0 && i.id === activeId ? `<span class="fly-val" style="color:${diff>0?'var(--apple-green)':'var(--apple-red)'}">${diff>0?'+':''}${diff}</span>` : ''}
+                            ${res.share} ₴
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    document.getElementById('confirmBtn').addEventListener('click', () => { isStrict = true; refresh(); });
+    document.getElementById('searchInput').addEventListener('input', () => { isStrict = false; activeId = null; refresh(); });
+
+    window.sel = (id) => {
+        if (activeId !== id) {
+            document.getElementById('markupInput').value = '';
+            document.getElementById('discountInput').value = '';
+            activeId = id;
+        } else activeId = null;
+        refresh();
+    };
+
+    // ==========================================
+    // 5. ФИЗИКА (RUBBER BAND)
+    // ==========================================
+    const wrapper = document.getElementById('rubber-wrapper');
+    const viewport = document.getElementById('viewport');
+    let sY = 0;
+    viewport.addEventListener('touchstart', (e) => { sY = e.touches[0].pageY; wrapper.style.transition = 'none'; }, { passive: true });
+    viewport.addEventListener('touchmove', (e) => {
+        const d = e.touches[0].pageY - sY;
+        const sc = viewport.scrollTop;
+        if ((sc <= 0 && d > 0) || (sc >= viewport.scrollHeight - viewport.clientHeight - 1 && d < 0)) {
+            wrapper.style.transform = `translateY(${d * 0.4}px)`;
+        }
+    }, { passive: true });
+    viewport.addEventListener('touchend', () => {
+        wrapper.style.transition = 'transform 0.5s cubic-bezier(0.15, 0.85, 0.35, 1.2)';
+        wrapper.style.transform = 'translateY(0px)';
+    });
+
+    ['markupInput', 'discountInput', 'promoInput'].forEach(id => document.getElementById(id).addEventListener('input', refresh));
+    
+    // ==========================================
+    // 6. ТЕМЫ
+    // ==========================================
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        const d = document.body.getAttribute('data-theme') === 'dark';
+        document.body.setAttribute('data-theme', d ? 'light' : 'dark');
+        document.getElementById('themeIcon').innerHTML = d 
+            ? '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>'
+            : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+    });
+
+    // Initial render
+    refresh();
+</script>
+</body>
+</html>
